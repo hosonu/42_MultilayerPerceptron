@@ -1,0 +1,18 @@
+[project]
+name = "42-template-python"
+version = "0.1.0"
+description = "A starter template for Python projects at 42 Paris"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "autopep8>=2.0.0",
+    "flake8>=7.0.0",
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
