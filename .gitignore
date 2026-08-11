@@ -224,5 +224,8 @@ __marimo__/
 # Trained model checkpoints
 *.pkl
 
+# Hyperparameter sweep outputs
+results/
+
 # Streamlit
 .streamlit/secrets.toml
