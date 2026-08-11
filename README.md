@@ -1,60 +1,89 @@
-# 42_Template_Python
+# 42 Multilayer Perceptron
 
-A starter template for Python projects at 42 Paris.
+From-scratch multilayer perceptron for binary breast-cancer diagnosis (M/B).
+The network is implemented with NumPy only — no ML frameworks for layers, loss, or training.
 
-Use this repository as a base when creating a new Python project. Replace the placeholders below with your own project details.
+## Architecture
 
-## Project Overview
+| Layer   | Units | Activation | Init |
+|---------|-------|------------|------|
+| Input   | 30    | —          | —    |
+| Hidden1 | 24    | ReLU       | He   |
+| Hidden2 | 24    | ReLU       | He   |
+| Output  | 2     | Softmax    | He   |
 
-<!-- Briefly describe your project: purpose, target users, and main features. -->
+- Loss: categorical cross-entropy
+- Optimizer: mini-batch SGD
 
-**Project name:** `<your-project-name>`
+## Prerequisites
 
-**Description:** `<one or two sentences about what this project does>`
+- Python 3.11+
+- [uv](https://docs.astral.sh/uv/) (installed locally by the Makefile)
 
-## Getting Started
-
-### Prerequisites
-
-- Python 3.11+ (recommended)
-- [uv](https://docs.astral.sh/uv/) or your preferred package manager
-
-### Setup
-
-1. Create a new repository from this template (or clone and rename).
-2. Update this README with your project name and description.
-3. Install dependencies from the project root:
+## Quick start
 
 ```bash
-make install
+make install   # sync dependencies via uv
+make split     # write data/train.csv and data/validation.csv
+make train     # train MLP, save model.pkl, plot learning curves
+make predict   # evaluate the saved model on the validation set
 ```
 
-4. Run the project:
+Optional exploration / architecture search:
 
 ```bash
-make run
+make explore
+make sweep     # grid-search lr / epochs / batch size / hidden layers / units
 ```
 
-Adjust the `Makefile` targets to match your project layout.
+Edit the `CONFIG` block at the top of `scripts/sweep_architectures.py`, or pass lists via `ARGS`.
 
-## Project Structure
+Pass extra CLI flags through `ARGS`:
 
-<!-- Update this tree as your project grows. -->
+```bash
+make train ARGS="--epochs 500 --lr 0.01 --batch-size 32 --no-plot"
+make predict ARGS="--model model.pkl --data data/validation.csv"
+make split ARGS="--validation-ratio 0.2 --seed 42"
+make sweep ARGS="--lrs 0.01 0.05 --epochs-list 500 --batch-sizes 16 32 --hidden-layers 1 2 --units 16 24"
+```
+
+## Project structure
 
 ```text
 .
-├── src/           # Application source code
-├── tests/         # Test files
-├── data/          # Input data (do not commit large or sensitive files)
-├── docs/          # Additional documentation
-├── Makefile       # Common development commands
-└── README.md      # Project overview (this file)
+├── split.py                 # Create train / validation CSV splits
+├── train.py                 # Train the MLP and save a checkpoint
+├── predict.py               # Run inference with a saved model
+├── main.py                  # Placeholder entry point
+├── src/
+│   ├── network.py           # MLP (forward, backward, fit)
+│   ├── layers.py            # Dense layer + He init
+│   ├── activations.py       # ReLU, Softmax
+│   ├── losses.py            # Cross-entropy
+│   ├── metrics.py           # Accuracy + learning-curve plot
+│   ├── preprocessing.py     # Label encoding + feature scaling
+│   ├── data_loader.py       # CSV loading helpers
+│   └── dataset_split.py     # Stratified / seeded split utilities
+├── scripts/
+│   ├── explore_dataset.py       # Dataset EDA plots
+│   └── sweep_architectures.py   # Architecture / hyperparameter grid search
+├── data/
+│   └── data.csv             # Raw breast-cancer dataset
+├── results/                 # Sweep CSV output (gitignored)
+├── tests/
+├── Makefile
+└── README.md
 ```
 
 ## Development
 
-For setup, linting, testing, branch naming, and pull request guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+```bash
+make lint      # flake8
+make format    # autopep8
+make test      # pytest
+make check     # lint + test
+make clean     # remove caches, model.pkl
+make fclean    # also remove .venv and local uv installs
+```
 
-## License
-
-<!-- Add your license here, or link to a LICENSE file. -->
+See [CONTRIBUTING.md](CONTRIBUTING.md) for branch naming and PR guidelines.
