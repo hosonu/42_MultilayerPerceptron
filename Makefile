@@ -1,5 +1,5 @@
 # ==============================================================================
-# 42 Template Python - Makefile
+# 42 Multilayer Perceptron - Makefile
 # ==============================================================================
 
 # Variables
@@ -23,22 +23,39 @@ SRC_DIR     := src
 SCRIPTS_DIR := scripts
 TESTS_DIR   := tests
 
-# Entry point — update this when you add your main script
-MAIN_PY     := main.py
+# Entry points
+SPLIT_PY    := split.py
+TRAIN_PY    := train.py
+PREDICT_PY  := predict.py
+EXPLORE_PY  := $(SCRIPTS_DIR)/explore_dataset.py
+SWEEP_PY    := $(SCRIPTS_DIR)/sweep_architectures.py
+
+# Optional CLI passthrough: make train ARGS="--epochs 500"
+ARGS        ?=
 
 # Rules
-.PHONY: all help install pre sync run lint format fmt check test clean fclean re
+.PHONY: all help install pre sync split train predict explore sweep run \
+        lint format fmt check test clean fclean re
 
 all: install
 
 help:
-	@echo "42 Template Python — Commands"
+	@echo "42 Multilayer Perceptron — Commands"
 	@echo ""
 	@echo "  Setup:"
 	@echo "    make install        Install dependencies using uv"
 	@echo ""
-	@echo "  Execution:"
-	@echo "    make run            Run the main entry point ($(MAIN_PY))"
+	@echo "  Pipeline:"
+	@echo "    make split          Split data/data.csv into train/validation CSVs"
+	@echo "    make train          Train the MLP and save model.pkl"
+	@echo "    make predict        Evaluate a saved model"
+	@echo "    make explore        Explore the dataset (EDA plots)"
+	@echo "    make sweep          Grid-search architectures / hyperparameters"
+	@echo "    make run            Alias for make train"
+	@echo ""
+	@echo "  Pass flags with ARGS, e.g.:"
+	@echo "    make train ARGS=\"--epochs 500 --no-plot\""
+	@echo "    make sweep ARGS=\"--max-trials 4 --lrs 0.01 --batch-sizes 32 --units 16 24\""
 	@echo ""
 	@echo "  Development:"
 	@echo "    make lint           Run flake8 on $(SRC_DIR), $(SCRIPTS_DIR), and $(TESTS_DIR)"
@@ -47,7 +64,7 @@ help:
 	@echo "    make check          Run lint and tests"
 	@echo ""
 	@echo "  Cleanup:"
-	@echo "    make clean          Remove Python cache files"
+	@echo "    make clean          Remove Python caches and model.pkl"
 	@echo "    make fclean         Remove .venv, local uv, and generated caches"
 	@echo "    make re             Full reinstallation"
 
@@ -69,10 +86,28 @@ sync: pre $(UV)
 install: sync
 	@echo "Done! Environment is ready."
 
-# Main Tasks
-run: sync
-	@echo "==> Running $(MAIN_PY)..."
-	$(PYTHON) $(MAIN_PY)
+# Pipeline
+split: sync
+	@echo "==> Splitting dataset..."
+	$(PYTHON) $(SPLIT_PY) $(ARGS)
+
+train: sync
+	@echo "==> Training MLP..."
+	$(PYTHON) $(TRAIN_PY) $(ARGS)
+
+predict: sync
+	@echo "==> Running prediction..."
+	$(PYTHON) $(PREDICT_PY) $(ARGS)
+
+explore: sync
+	@echo "==> Exploring dataset..."
+	$(PYTHON) $(EXPLORE_PY) $(ARGS)
+
+sweep: sync
+	@echo "==> Sweeping architectures..."
+	$(PYTHON) $(SWEEP_PY) $(ARGS)
+
+run: train
 
 # Development Tools
 lint: sync
@@ -90,6 +125,7 @@ check: sync lint test
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
+	rm -f model.pkl
 
 fclean: clean
 	@echo "Cleaning up..."
