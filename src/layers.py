@@ -44,7 +44,7 @@ class DenseLayer:
         self.W: np.ndarray = rng.standard_normal((n_inputs, n_units)) * he_scale
         self.b: np.ndarray = np.zeros((1, n_units))
 
-        # Accumulated gradients (set by backward)
+        # Gradients from the latest backward (overwritten each call)
         self.dW: np.ndarray = np.zeros_like(self.W)
         self.db: np.ndarray = np.zeros_like(self.b)
 
@@ -74,7 +74,7 @@ class DenseLayer:
     # ------------------------------------------------------------------
 
     def backward(self, grad: np.ndarray) -> np.ndarray:
-        """Backpropagate gradients and accumulate dW, db.
+        """Backpropagate gradients and overwrite dW, db.
 
         Parameters
         ----------
