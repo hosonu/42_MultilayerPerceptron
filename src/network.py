@@ -3,8 +3,8 @@
 Fixed architecture
 ------------------
   Input  : 30 features
-  Hidden1: 16 units, ReLU, He init
-  Hidden2:  8 units, ReLU, He init
+  Hidden1: 24 units, ReLU, He init
+  Hidden2: 24 units, ReLU, He init
   Output :  2 units, Softmax, He init
 """
 
@@ -25,12 +25,13 @@ _DEFAULT_ARCH: list[tuple[int, int, str]] = [
 
 
 class MLP:
-    """Vanilla mini-batch-free MLP trained with full-batch gradient descent.
+    """MLP trained with mini-batch SGD.
 
     Parameters
     ----------
     seed:
-        Optional seed forwarded to each layer for reproducible initialisation.
+        Optional seed forwarded to each layer for reproducible initialisation
+        and used as the default shuffle seed in :meth:`fit`.
     arch:
         List of ``(n_inputs, n_units, activation)`` tuples.  Defaults to the
         project-specified architecture.
@@ -41,6 +42,7 @@ class MLP:
         seed: int | None = None,
         arch: list[tuple[int, int, str]] | None = None,
     ) -> None:
+        self.seed = seed
         spec = arch if arch is not None else _DEFAULT_ARCH
         layer_seed = seed
         self.layers: list[DenseLayer] = []
@@ -109,10 +111,12 @@ class MLP:
         y_val: np.ndarray | None = None,
         lr: float = 0.01,
         epochs: int = 1_000,
+        batch_size: int = 32,
+        seed: int | None = None,
         verbose: bool = True,
         log_every: int = 100,
     ) -> dict[str, list[float]]:
-        """Train the network with full-batch gradient descent.
+        """Train the network with mini-batch SGD.
 
         Parameters
         ----------
@@ -123,7 +127,11 @@ class MLP:
         lr:
             Learning rate.
         epochs:
-            Total number of gradient steps.
+            Number of passes over the training set.
+        batch_size:
+            Mini-batch size.  If ``>= n_train``, falls back to full-batch.
+        seed:
+            RNG seed for per-epoch shuffling.  Defaults to ``self.seed``.
         verbose:
             Print loss every ``log_every`` epochs when ``True``.
         log_every:
@@ -131,24 +139,38 @@ class MLP:
 
         Returns
         -------
-        ``history`` dict with keys ``"train_loss"`` and (if a validation
-        set was provided) ``"val_loss"``.
+        ``history`` dict with keys ``"train_loss"`` / ``"train_acc"`` and
+        (if a validation set was provided) ``"val_loss"`` / ``"val_acc"``.
+        Metrics are computed on the full sets after each epoch.
         """
+        if batch_size < 1:
+            raise ValueError(f"batch_size must be >= 1, got {batch_size}")
+
         history: dict[str, list[float]] = {"train_loss": [], "train_acc": []}
         if X_val is not None:
             history["val_loss"] = []
             history["val_acc"] = []
 
+        n_train = X_train.shape[0]
+        effective_bs = min(batch_size, n_train)
+        shuffle_seed = self.seed if seed is None else seed
+        rng = np.random.default_rng(shuffle_seed)
+
         completed = 0
         try:
             for epoch in range(1, epochs + 1):
-                # --- forward + backward + update ---
-                probs = self.forward(X_train)
-                train_loss = cross_entropy(probs, y_train)
-                self.backward(y_train)
-                self.update(lr)
+                # --- mini-batch SGD ---
+                indices = rng.permutation(n_train)
+                for start in range(0, n_train, effective_bs):
+                    batch_idx = indices[start : start + effective_bs]
+                    X_batch = X_train[batch_idx]
+                    y_batch = y_train[batch_idx]
+                    self.forward(X_batch)
+                    self.backward(y_batch)
+                    self.update(lr)
 
-                # --- metrics (2 extra forward passes per epoch) ---
+                # --- metrics on full sets (after all batches) ---
+                train_loss = self.loss(X_train, y_train)
                 train_acc = accuracy(y_train, self.predict(X_train))
                 history["train_loss"].append(train_loss)
                 history["train_acc"].append(train_acc)
