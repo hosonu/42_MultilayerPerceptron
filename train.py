@@ -31,9 +31,9 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--val-ratio", type=float, default=0.2)
     parser.add_argument("--lr", type=float, default=0.01)
-    parser.add_argument("--epochs", type=int, default=1_000)
-    parser.add_argument("--batch-size", type=int, default=32)
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--epochs", type=int, default=200)
+    parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--seed", type=int, default=16)
     parser.add_argument("--no-plot", action="store_true", help="Skip learning curve plot")
     return parser.parse_args()
 
@@ -70,7 +70,7 @@ def main() -> None:
         epochs=args.epochs,
         batch_size=args.batch_size,
         verbose=True,
-        log_every=100,
+        log_every=5,
     )
 
     # ------------------------------------------------------------------ save
