@@ -29,12 +29,14 @@ TRAIN_PY    := train.py
 PREDICT_PY  := predict.py
 EXPLORE_PY  := $(SCRIPTS_DIR)/explore_dataset.py
 SWEEP_PY    := $(SCRIPTS_DIR)/sweep_architectures.py
+SWEEP_SEEDS_PY := $(SCRIPTS_DIR)/sweep_seeds.py
+SWEEP_KFOLD_PY := $(SCRIPTS_DIR)/sweep_kfold.py
 
 # Optional CLI passthrough: make train ARGS="--epochs 500"
 ARGS        ?=
 
 # Rules
-.PHONY: all help install pre sync split train predict explore sweep run \
+.PHONY: all help install pre sync split train predict explore sweep sweep-seeds sweep-kfold run \
         lint format fmt check test clean fclean re
 
 all: install
@@ -51,11 +53,14 @@ help:
 	@echo "    make predict        Evaluate a saved model"
 	@echo "    make explore        Explore the dataset (EDA plots)"
 	@echo "    make sweep          Grid-search architectures / hyperparameters"
+	@echo "    make sweep-seeds    Fixed hyperparams, sweep seeds only"
+	@echo "    make sweep-kfold    K-Fold CV sweep for robust hyperparameter search"
 	@echo "    make run            Alias for make train"
 	@echo ""
 	@echo "  Pass flags with ARGS, e.g.:"
 	@echo "    make train ARGS=\"--epochs 500 --no-plot\""
 	@echo "    make sweep ARGS=\"--max-trials 4 --lrs 0.01 --batch-sizes 32 --units 16 24\""
+	@echo "    make sweep-seeds ARGS=\"--seeds 42 0 1 7 123\""
 	@echo ""
 	@echo "  Development:"
 	@echo "    make lint           Run flake8 on $(SRC_DIR), $(SCRIPTS_DIR), and $(TESTS_DIR)"
@@ -106,6 +111,14 @@ explore: sync
 sweep: sync
 	@echo "==> Sweeping architectures..."
 	$(PYTHON) $(SWEEP_PY) $(ARGS)
+
+sweep-seeds: sync
+	@echo "==> Sweeping seeds for fixed hyperparameters..."
+	$(PYTHON) $(SWEEP_SEEDS_PY) $(ARGS)
+
+sweep-kfold: sync
+	@echo "==> K-Fold CV sweep (robust hyperparameter search)..."
+	$(PYTHON) $(SWEEP_KFOLD_PY) $(ARGS)
 
 run: train
 
