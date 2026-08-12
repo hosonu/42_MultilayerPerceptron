@@ -67,7 +67,7 @@ def plot_learning_curves(
     ax_acc.set_title("Accuracy")
     ax_acc.set_xlabel("Epoch")
     ax_acc.set_ylabel("Accuracy")
-    ax_acc.set_ylim(0, 1)
+    ax_acc.set_ylim(0.7, 1.0)
     ax_acc.legend()
     ax_acc.grid(True, alpha=0.3)
 
