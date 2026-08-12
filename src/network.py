@@ -18,9 +18,9 @@ from src.metrics import accuracy
 
 # (n_inputs, n_units, activation)
 _DEFAULT_ARCH: list[tuple[int, int, str]] = [
-    (30, 24, "relu"),
-    (24, 24, "relu"),
-    (24, 2, "softmax"),
+    (30, 16, "relu"),
+    (16, 16, "relu"),
+    (16, 2, "softmax"),
 ]
 
 
