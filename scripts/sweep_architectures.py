@@ -73,6 +73,12 @@ class TrialResult:
     final_val_acc: float
     best_val_acc: float
     best_val_loss: float
+    best_epoch: int
+    overfit_gap: float  # final_val_loss - best_val_loss
+    val_loss_curve: list[float]
+    train_loss_curve: list[float]
+    val_acc_curve: list[float]
+    train_acc_curve: list[float]
 
 
 def build_arch(n_hidden: int, units: int) -> list[tuple[int, int, str]]:
@@ -201,16 +207,27 @@ def run_trial(
 
     val_accs = history["val_acc"]
     val_losses = history["val_loss"]
+    train_losses = history["train_loss"]
+    train_accs = history["train_acc"]
     best_idx = max(range(len(val_accs)), key=lambda i: (val_accs[i], -val_losses[i]))
+
+    final_val_loss = val_losses[-1]
+    best_val_loss = val_losses[best_idx]
 
     return TrialResult(
         config=cfg,
-        final_train_loss=history["train_loss"][-1],
-        final_train_acc=history["train_acc"][-1],
-        final_val_loss=val_losses[-1],
+        final_train_loss=train_losses[-1],
+        final_train_acc=train_accs[-1],
+        final_val_loss=final_val_loss,
         final_val_acc=val_accs[-1],
         best_val_acc=val_accs[best_idx],
-        best_val_loss=val_losses[best_idx],
+        best_val_loss=best_val_loss,
+        best_epoch=best_idx + 1,
+        overfit_gap=final_val_loss - best_val_loss,
+        val_loss_curve=val_losses,
+        train_loss_curve=train_losses,
+        val_acc_curve=val_accs,
+        train_acc_curve=train_accs,
     )
 
 
@@ -224,6 +241,8 @@ def write_csv(path: Path, results: list[TrialResult]) -> None:
         "n_hidden",
         "units",
         "arch",
+        "best_epoch",
+        "overfit_gap",
         "best_val_acc",
         "best_val_loss",
         "final_val_acc",
@@ -245,6 +264,8 @@ def write_csv(path: Path, results: list[TrialResult]) -> None:
                     "n_hidden": cfg.n_hidden,
                     "units": cfg.units,
                     "arch": cfg.arch_label,
+                    "best_epoch": result.best_epoch,
+                    "overfit_gap": f"{result.overfit_gap:.6f}",
                     "best_val_acc": f"{result.best_val_acc:.6f}",
                     "best_val_loss": f"{result.best_val_loss:.6f}",
                     "final_val_acc": f"{result.final_val_acc:.6f}",
@@ -253,6 +274,59 @@ def write_csv(path: Path, results: list[TrialResult]) -> None:
                     "final_train_loss": f"{result.final_train_loss:.6f}",
                 }
             )
+
+
+def write_curves_csv(path: Path, results: list[TrialResult]) -> None:
+    """Save per-epoch val/train loss and accuracy for every trial."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = [
+        "trial_id",
+        "rank",
+        "lr",
+        "epochs",
+        "batch_size",
+        "n_hidden",
+        "units",
+        "epoch",
+        "train_loss",
+        "val_loss",
+        "train_acc",
+        "val_acc",
+    ]
+    with open(path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for rank, result in enumerate(results, start=1):
+            cfg = result.config
+            trial_id = (
+                f"lr{cfg.lr:g}_bs{cfg.batch_size}"
+                f"_ep{cfg.epochs}_h{cfg.n_hidden}_u{cfg.units}"
+            )
+            for ep, (tl, vl, ta, va) in enumerate(
+                zip(
+                    result.train_loss_curve,
+                    result.val_loss_curve,
+                    result.train_acc_curve,
+                    result.val_acc_curve,
+                ),
+                start=1,
+            ):
+                writer.writerow(
+                    {
+                        "trial_id": trial_id,
+                        "rank": rank,
+                        "lr": cfg.lr,
+                        "epochs": cfg.epochs,
+                        "batch_size": cfg.batch_size,
+                        "n_hidden": cfg.n_hidden,
+                        "units": cfg.units,
+                        "epoch": ep,
+                        "train_loss": f"{tl:.6f}",
+                        "val_loss": f"{vl:.6f}",
+                        "train_acc": f"{ta:.6f}",
+                        "val_acc": f"{va:.6f}",
+                    }
+                )
 
 
 def print_table(results: list[TrialResult], top_k: int) -> None:
@@ -324,10 +398,13 @@ def main() -> None:
         key=lambda r: (-r.best_val_acc, r.best_val_loss, -r.final_val_acc)
     )
     write_csv(args.out, results)
+    curves_path = args.out.with_name(args.out.stem + "_curves.csv")
+    write_curves_csv(curves_path, results)
     print_table(results, args.top_k)
 
     best = results[0]
     print(f"\nResults saved to {args.out}")
+    print(f"Epoch curves  saved to {curves_path}")
     print(
         "Best config → "
         f"lr={best.config.lr:g}  epochs={best.config.epochs}  "
