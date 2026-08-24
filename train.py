@@ -6,8 +6,11 @@ import argparse
 import pickle
 from pathlib import Path
 
-from src.data_loader import DEFAULT_TRAIN_PATH, load_dataset
-from src.dataset_split import split_dataset
+from src.data_loader import (
+    DEFAULT_TRAIN_PATH,
+    DEFAULT_VALIDATION_PATH,
+    load_dataset,
+)
 from src.metrics import plot_learning_curves
 from src.network import MLP
 from src.preprocessing import Preprocessor
@@ -18,10 +21,19 @@ DEFAULT_MODEL_PATH = Path(__file__).parent / "model.pkl"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Train the MLP classifier.")
     parser.add_argument(
-        "--data",
+        "--train-data",
         type=Path,
         default=DEFAULT_TRAIN_PATH,
-        help="Path to the dataset CSV (default: data/data.csv)",
+        help=f"Training CSV from split.py (default: {DEFAULT_TRAIN_PATH})",
+    )
+    parser.add_argument(
+        "--val-data",
+        type=Path,
+        default=DEFAULT_VALIDATION_PATH,
+        help=(
+            "Validation CSV from split.py "
+            f"(default: {DEFAULT_VALIDATION_PATH})"
+        ),
     )
     parser.add_argument(
         "--model-out",
@@ -29,11 +41,15 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_MODEL_PATH,
         help="Where to save the trained model pickle (default: model.pkl)",
     )
-    parser.add_argument("--val-ratio", type=float, default=0.2)
     parser.add_argument("--lr", type=float, default=0.01)
     parser.add_argument("--epochs", type=int, default=200)
     parser.add_argument("--batch-size", type=int, default=16)
-    parser.add_argument("--seed", type=int, default=16)
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=16,
+        help="RNG seed for weight init and mini-batch shuffling",
+    )
     parser.add_argument("--no-plot", action="store_true", help="Skip learning curve plot")
     return parser.parse_args()
 
@@ -42,12 +58,19 @@ def main() -> None:
     args = parse_args()
 
     # ------------------------------------------------------------------ data
-    print(f"Loading dataset from {args.data} …")
-    df = load_dataset(args.data)
+    for path in (args.train_data, args.val_data):
+        if not path.is_file():
+            raise FileNotFoundError(
+                f"Dataset not found: {path}\n"
+                "Run `make split` first to create train/validation CSVs."
+            )
 
-    train_df, val_df = split_dataset(df, args.val_ratio, seed=args.seed)
+    print(f"Loading train from {args.train_data} …")
+    train_df = load_dataset(args.train_data)
+    print(f"Loading validation from {args.val_data} …")
+    val_df = load_dataset(args.val_data)
     print(
-        f"Split → train: {len(train_df)} samples | "
+        f"Loaded → train: {len(train_df)} samples | "
         f"validation: {len(val_df)} samples"
     )
 
