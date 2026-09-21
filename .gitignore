@@ -229,3 +229,6 @@ results/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Mac OS
+.DS_Store
