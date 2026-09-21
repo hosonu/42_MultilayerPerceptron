@@ -27,7 +27,7 @@ def parse_args() -> argparse.Namespace:
         "--data",
         type=Path,
         default=DEFAULT_VALIDATION_PATH,
-        help="Path to the dataset CSV (default: data/data.csv)",
+        help="Path to the dataset CSV (default: data/validation.csv)",
     )
     return parser.parse_args()
 
