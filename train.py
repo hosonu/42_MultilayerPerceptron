@@ -42,8 +42,19 @@ def parse_args() -> argparse.Namespace:
         help="Where to save the trained model pickle (default: model.pkl)",
     )
     parser.add_argument("--lr", type=float, default=0.01)
-    parser.add_argument("--epochs", type=int, default=200)
-    parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=500,
+        help="Maximum number of training epochs (early stopping may stop sooner)",
+    )
+    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument(
+        "--patience",
+        type=int,
+        default=20,
+        help="Early stopping patience: stop after this many epochs without val_loss improvement",
+    )
     parser.add_argument(
         "--seed",
         type=int,
@@ -93,7 +104,8 @@ def main() -> None:
         epochs=args.epochs,
         batch_size=args.batch_size,
         verbose=True,
-        log_every=5,
+        log_every=10,
+        patience=args.patience,
     )
 
     # ------------------------------------------------------------------ save
