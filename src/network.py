@@ -3,13 +3,14 @@
 Fixed architecture
 ------------------
   Input  : 30 features
-  Hidden1: 24 units, ReLU, He init
-  Hidden2: 24 units, ReLU, He init
+  Hidden1: 32 units, ReLU, He init
+  Hidden2: 32 units, ReLU, He init
   Output :  2 units, Softmax, He init
 """
 
 from __future__ import annotations
 
+import copy
 import numpy as np
 
 from src.layers import DenseLayer
@@ -18,9 +19,9 @@ from src.metrics import accuracy
 
 # (n_inputs, n_units, activation)
 _DEFAULT_ARCH: list[tuple[int, int, str]] = [
-    (30, 16, "relu"),
-    (16, 16, "relu"),
-    (16, 2, "softmax"),
+    (30, 32, "relu"),
+    (32, 32, "relu"),
+    (32, 2, "softmax"),
 ]
 
 
@@ -115,8 +116,10 @@ class MLP:
         seed: int | None = None,
         verbose: bool = True,
         log_every: int = 100,
+        patience: int = 20,
+        min_delta: float = 1e-4,
     ) -> dict[str, list[float]]:
-        """Train the network with mini-batch SGD.
+        """Train the network with mini-batch SGD and early stopping.
 
         Parameters
         ----------
@@ -127,7 +130,7 @@ class MLP:
         lr:
             Learning rate.
         epochs:
-            Number of passes over the training set.
+            Maximum number of passes over the training set.
         batch_size:
             Mini-batch size.  If ``>= n_train``, falls back to full-batch.
         seed:
@@ -136,6 +139,11 @@ class MLP:
             Print loss every ``log_every`` epochs when ``True``.
         log_every:
             Print interval (default 100).
+        patience:
+            Early stopping: stop after this many epochs with no improvement
+            in val_loss.  Ignored when no validation set is provided.
+        min_delta:
+            Minimum improvement in val_loss to count as a new best.
 
         Returns
         -------
@@ -155,6 +163,11 @@ class MLP:
         effective_bs = min(batch_size, n_train)
         shuffle_seed = self.seed if seed is None else seed
         rng = np.random.default_rng(shuffle_seed)
+
+        # --- early stopping state ---
+        best_val_loss: float = float("inf")
+        patience_counter: int = 0
+        best_weights: list[dict[str, np.ndarray]] | None = None
 
         completed = 0
         try:
@@ -183,6 +196,24 @@ class MLP:
                     history["val_loss"].append(val_loss)
                     history["val_acc"].append(val_acc)
 
+                    # --- early stopping check ---
+                    if val_loss < best_val_loss - min_delta:
+                        best_val_loss = val_loss
+                        best_weights = [
+                            {"W": copy.deepcopy(l.W), "b": copy.deepcopy(l.b)}
+                            for l in self.layers
+                        ]
+                        patience_counter = 0
+                    else:
+                        patience_counter += 1
+                        if patience_counter >= patience:
+                            if verbose:
+                                print(
+                                    f"\nEarly stopping at epoch {epoch}"
+                                    f" (best val_loss={best_val_loss:.4f})"
+                                )
+                            break
+
                 if verbose and (epoch == 1 or epoch % log_every == 0):
                     msg = (
                         f"epoch {epoch:>5}/{epochs}"
@@ -200,5 +231,11 @@ class MLP:
                 f"\nTraining interrupted after epoch {completed}/{epochs}."
                 " Returning partial history."
             )
+
+        # --- restore best weights ---
+        if best_weights is not None:
+            for layer, w in zip(self.layers, best_weights):
+                layer.W = w["W"]
+                layer.b = w["b"]
 
         return history
