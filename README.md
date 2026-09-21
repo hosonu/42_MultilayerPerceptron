@@ -8,8 +8,8 @@ The network is implemented with NumPy only — no ML frameworks for layers, loss
 | Layer   | Units | Activation | Init |
 |---------|-------|------------|------|
 | Input   | 30    | —          | —    |
-| Hidden1 | 16    | ReLU       | He   |
-| Hidden2 | 16    | ReLU       | He   |
+| Hidden1 | 32    | ReLU       | He   |
+| Hidden2 | 32    | ReLU       | He   |
 | Output  | 2     | Softmax    | He   |
 
 - Loss: categorical cross-entropy
@@ -41,12 +41,14 @@ make sweep-kfold    # stratified K-Fold CV for robust ranking
 Edit the `CONFIG` block at the top of each sweep script, or pass lists via `ARGS`.
 Architecture sweep also writes per-epoch curves to `results/*_curves.csv`.
 
-Default `make train` uses `--epochs 200 --batch-size 16 --seed 16`.
+`make train` loads `data/train.csv` and `data/validation.csv` from `make split`
+(no re-split). `--seed` only controls weight init and mini-batch shuffling.
+Defaults: `--epochs 200 --batch-size 16 --seed 16`.
 
 Pass extra CLI flags through `ARGS`:
 
 ```bash
-make train ARGS="--epochs 200 --lr 0.01 --batch-size 16 --no-plot"
+make train ARGS="--epochs 200 --lr 0.01 --batch-size 16 --patience 10 --no-plot"
 make predict ARGS="--model model.pkl --data data/validation.csv"
 make split ARGS="--validation-ratio 0.2 --seed 42"
 make sweep ARGS="--lrs 0.01 0.05 --epochs-list 200 --batch-sizes 16 32 --hidden-layers 1 2 --units 16 24"
