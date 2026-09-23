@@ -78,6 +78,10 @@ def plot_learning_curves(
         print(f"Learning curves saved to {save_path}")
 
     if show:
-        plt.show()
+        try:
+            plt.show()
+        except KeyboardInterrupt:
+            plt.close(fig)
+            return
 
     plt.close(fig)
