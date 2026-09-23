@@ -107,7 +107,11 @@ class DenseLayer:
     # Weight update
     # ------------------------------------------------------------------
 
-    def update(self, lr: float) -> None:
-        """Vanilla SGD step: W -= lr * dW, b -= lr * db."""
-        self.W -= lr * self.dW
+    def update(self, lr: float, weight_decay: float = 0.0) -> None:
+        """SGD step with optional L2 weight decay.
+
+        W is penalised towards zero: W -= lr * (dW + weight_decay * W).
+        Bias is never decayed (standard practice).
+        """
+        self.W -= lr * (self.dW + weight_decay * self.W)
         self.b -= lr * self.db
