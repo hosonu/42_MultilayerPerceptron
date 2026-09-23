@@ -110,13 +110,13 @@ class MLP:
         *,
         X_val: np.ndarray | None = None,
         y_val: np.ndarray | None = None,
-        lr: float = 0.01,
-        epochs: int = 1_000,
-        batch_size: int = 32,
-        weight_decay: float = 0.0,
+        lr: float = 0.05,
+        epochs: int = 500,
+        batch_size: int = 16,
+        weight_decay: float = 1e-3,
         seed: int | None = None,
         verbose: bool = True,
-        log_every: int = 100,
+        log_every: int = 10,
         patience: int = 20,
         min_delta: float = 1e-4,
     ) -> dict[str, list[float]]:
@@ -138,7 +138,7 @@ class MLP:
             L2 regularisation coefficient λ.  Each update applies
             ``W -= lr * (dW + λ * W)`` so the weights are pulled towards
             zero, limiting train-loss from collapsing to 0.  Set to 0.0
-            (default) to disable.  Typical range: 1e-4 – 1e-3.
+            (default) to disable.  Typical range: 1e-4 - 1e-3.
         seed:
             RNG seed for per-epoch shuffling.  Defaults to ``self.seed``.
         verbose:
