@@ -232,3 +232,6 @@ results/
 
 # Mac OS
 .DS_Store
+
+# Tests
+/tests
