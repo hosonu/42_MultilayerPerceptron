@@ -42,6 +42,7 @@ SHUFFLE_SEED: int = 42    # seed for fold assignment (keep fixed for reproducibi
 MODEL_SEED_BASE: int = 0  # model init seed for fold k = MODEL_SEED_BASE + k
 ROBUST_LAMBDA: float = 0.5  # penalty on std: robust_score = mean_acc - λ * std_acc
 TOP_K: int = 15             # how many top configs to print
+PATIENCE: int = 20        # early stopping patience (matches train.py default)
 
 # Search space — targeted ranges based on dataset size (569 samples, 30 features)
 LRS: list[float] = [0.005, 0.01, 0.03, 0.05]
@@ -49,6 +50,7 @@ EPOCHS_LIST: list[int] = [50, 100, 200, 500]
 BATCH_SIZES: list[int] = [8, 16, 32]
 HIDDEN_LAYERS: list[int] = [2, 3]
 UNITS: list[int] = [16, 24, 32]
+WEIGHT_DECAYS: list[float] = [0.0, 1e-4, 5e-4, 1e-3]
 
 N_FEATURES: int = 30
 N_CLASSES: int = 2
@@ -66,6 +68,7 @@ class TrialConfig:
     batch_size: int
     n_hidden: int
     units: int
+    weight_decay: float
 
     @property
     def arch_label(self) -> str:
@@ -76,7 +79,7 @@ class TrialConfig:
     def label(self) -> str:
         return (
             f"lr{self.lr:g}_bs{self.batch_size}"
-            f"_ep{self.epochs}_h{self.n_hidden}_u{self.units}"
+            f"_ep{self.epochs}_h{self.n_hidden}_u{self.units}_wd{self.weight_decay:g}"
         )
 
 
@@ -190,6 +193,8 @@ def run_fold(
         lr=cfg.lr,
         epochs=cfg.epochs,
         batch_size=cfg.batch_size,
+        weight_decay=cfg.weight_decay,
+        patience=PATIENCE,
         verbose=False,
     )
 
@@ -221,9 +226,9 @@ def run_config(
 
 def iter_configs() -> list[TrialConfig]:
     return [
-        TrialConfig(lr=lr, epochs=epochs, batch_size=bs, n_hidden=nh, units=u)
-        for lr, epochs, bs, nh, u in itertools.product(
-            LRS, EPOCHS_LIST, BATCH_SIZES, HIDDEN_LAYERS, UNITS
+        TrialConfig(lr=lr, epochs=epochs, batch_size=bs, n_hidden=nh, units=u, weight_decay=wd)
+        for lr, epochs, bs, nh, u, wd in itertools.product(
+            LRS, EPOCHS_LIST, BATCH_SIZES, HIDDEN_LAYERS, UNITS, WEIGHT_DECAYS
         )
     ]
 
@@ -241,6 +246,7 @@ def write_csv(path: Path, results: list[KFoldResult]) -> None:
         "lr",
         "epochs",
         "batch_size",
+        "weight_decay",
         "n_hidden",
         "units",
         "arch",
@@ -262,6 +268,7 @@ def write_csv(path: Path, results: list[KFoldResult]) -> None:
                     "lr": cfg.lr,
                     "epochs": cfg.epochs,
                     "batch_size": cfg.batch_size,
+                    "weight_decay": cfg.weight_decay,
                     "n_hidden": cfg.n_hidden,
                     "units": cfg.units,
                     "arch": cfg.arch_label,
@@ -278,8 +285,8 @@ def print_table(results: list[KFoldResult], top_k: int) -> None:
     )
     header = (
         f"{'#':>3}  {'robust':>8}  {'mean_acc':>9}  {'std_acc':>8}  "
-        f"{'mean_loss':>10}  {'std_loss':>9}  "
-        f"{'lr':>7}  {'ep':>5}  {'bs':>4}  {'h':>2}  {'u':>4}"
+        f"{'mean_loss':>10}  {'gap':>8}  "
+        f"{'lr':>7}  {'ep':>5}  {'bs':>4}  {'wd':>7}  {'h':>2}  {'u':>4}"
     )
     print(header)
     print("-" * len(header))
@@ -288,9 +295,9 @@ def print_table(results: list[KFoldResult], top_k: int) -> None:
         print(
             f"{i:>3}  {r.robust_score:>8.5f}  {r.mean_best_val_acc:>9.5f}  "
             f"{r.std_best_val_acc:>8.5f}  {r.mean_best_val_loss:>10.5f}  "
-            f"{r.std_best_val_loss:>9.5f}  "
+            f"{r.mean_overfit_gap:>8.5f}  "
             f"{cfg.lr:>7g}  {cfg.epochs:>5}  {cfg.batch_size:>4}  "
-            f"{cfg.n_hidden:>2}  {cfg.units:>4}"
+            f"{cfg.weight_decay:>7g}  {cfg.n_hidden:>2}  {cfg.units:>4}"
         )
 
 
@@ -304,6 +311,7 @@ def main() -> None:
         f"LRS={LRS}\n"
         f"EPOCHS={EPOCHS_LIST}  BATCH_SIZES={BATCH_SIZES}\n"
         f"HIDDEN_LAYERS={HIDDEN_LAYERS}  UNITS={UNITS}\n"
+        f"WEIGHT_DECAYS={WEIGHT_DECAYS}\n"
         f"robust_score = mean_acc - {ROBUST_LAMBDA} * std_acc\n"
         f"Data: {DATA_PATH}"
     )
