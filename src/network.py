@@ -19,9 +19,9 @@ from src.metrics import accuracy
 
 # (n_inputs, n_units, activation)
 _DEFAULT_ARCH: list[tuple[int, int, str]] = [
-    (30, 32, "relu"),
-    (32, 32, "relu"),
-    (32, 2, "softmax"),
+    (30, 16, "relu"),
+    (16, 16, "relu"),
+    (16, 2, "softmax"),
 ]
 
 
@@ -94,10 +94,10 @@ class MLP:
         for layer in reversed(self.layers):
             grad = layer.backward(grad)
 
-    def update(self, lr: float) -> None:
-        """Apply a vanilla SGD step to every layer."""
+    def update(self, lr: float, weight_decay: float = 0.0) -> None:
+        """Apply SGD step with optional L2 weight decay to every layer."""
         for layer in self.layers:
-            layer.update(lr)
+            layer.update(lr, weight_decay)
 
     # ------------------------------------------------------------------
     # Training loop
@@ -113,6 +113,7 @@ class MLP:
         lr: float = 0.01,
         epochs: int = 1_000,
         batch_size: int = 32,
+        weight_decay: float = 0.0,
         seed: int | None = None,
         verbose: bool = True,
         log_every: int = 100,
@@ -133,6 +134,11 @@ class MLP:
             Maximum number of passes over the training set.
         batch_size:
             Mini-batch size.  If ``>= n_train``, falls back to full-batch.
+        weight_decay:
+            L2 regularisation coefficient λ.  Each update applies
+            ``W -= lr * (dW + λ * W)`` so the weights are pulled towards
+            zero, limiting train-loss from collapsing to 0.  Set to 0.0
+            (default) to disable.  Typical range: 1e-4 – 1e-3.
         seed:
             RNG seed for per-epoch shuffling.  Defaults to ``self.seed``.
         verbose:
@@ -180,7 +186,7 @@ class MLP:
                     y_batch = y_train[batch_idx]
                     self.forward(X_batch)
                     self.backward(y_batch)
-                    self.update(lr)
+                    self.update(lr, weight_decay)
 
                 # --- metrics on full sets (after all batches) ---
                 train_loss = self.loss(X_train, y_train)
