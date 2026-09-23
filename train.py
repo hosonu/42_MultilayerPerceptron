@@ -41,14 +41,20 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_MODEL_PATH,
         help="Where to save the trained model pickle (default: model.pkl)",
     )
-    parser.add_argument("--lr", type=float, default=0.01)
+    parser.add_argument("--lr", type=float, default=0.05)
     parser.add_argument(
         "--epochs",
         type=int,
         default=500,
         help="Maximum number of training epochs (early stopping may stop sooner)",
     )
-    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument(
+        "--weight-decay",
+        type=float,
+        default=1e-3,
+        help="L2 weight decay coefficient λ (default: 1e-4, 0 to disable)",
+    )
     parser.add_argument(
         "--patience",
         type=int,
@@ -92,7 +98,8 @@ def main() -> None:
     # ----------------------------------------------------------------- train
     print(
         f"\nTraining MLP  lr={args.lr}  epochs={args.epochs}"
-        f"  batch_size={args.batch_size}  seed={args.seed}"
+        f"  batch_size={args.batch_size}  weight_decay={args.weight_decay}"
+        f"  seed={args.seed}"
     )
     model = MLP(seed=args.seed)
     history = model.fit(
@@ -103,6 +110,7 @@ def main() -> None:
         lr=args.lr,
         epochs=args.epochs,
         batch_size=args.batch_size,
+        weight_decay=args.weight_decay,
         verbose=True,
         log_every=10,
         patience=args.patience,
