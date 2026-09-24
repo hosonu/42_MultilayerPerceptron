@@ -53,7 +53,7 @@ def parse_args() -> argparse.Namespace:
         "--weight-decay",
         type=float,
         default=1e-3,
-        help="L2 weight decay coefficient λ (default: 1e-4, 0 to disable)",
+        help="L2 weight decay coefficient λ (default: 0.001, 0 to disable)",
     )
     parser.add_argument(
         "--patience",
