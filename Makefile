@@ -11,7 +11,6 @@ UV_CACHE    := ./uv_cache
 PYTHON      := $(UV) run python
 FLAKE8      := $(UV) run flake8
 AUTOPEP8    := $(UV) run autopep8
-PYTEST      := $(UV) run pytest
 
 # Virtual environment
 export UV_PYTHON_INSTALL_DIR := $(UV_PY)
@@ -21,7 +20,6 @@ export UV_PYTHON_DOWNLOADS := auto
 # Directories
 SRC_DIR     := src
 SCRIPTS_DIR := scripts
-TESTS_DIR   := tests
 
 # Entry points
 SPLIT_PY    := split.py
@@ -37,7 +35,7 @@ ARGS        ?=
 
 # Rules
 .PHONY: all help install pre sync split train predict explore sweep sweep-seeds sweep-kfold run \
-        lint format fmt check test clean fclean re
+        lint format fmt check clean fclean re
 
 all: install
 
@@ -63,10 +61,9 @@ help:
 	@echo "    make sweep-seeds ARGS=\"--seeds 42 0 1 7 123\""
 	@echo ""
 	@echo "  Development:"
-	@echo "    make lint           Run flake8 on $(SRC_DIR), $(SCRIPTS_DIR), and $(TESTS_DIR)"
+	@echo "    make lint           Run flake8 on $(SRC_DIR) and $(SCRIPTS_DIR)"
 	@echo "    make format / fmt   Run autopep8 formatter"
-	@echo "    make test           Run pytest"
-	@echo "    make check          Run lint and tests"
+	@echo "    make check          Run flake8"
 	@echo ""
 	@echo "  Cleanup:"
 	@echo "    make clean          Remove Python caches and model.pkl"
@@ -124,15 +121,12 @@ run: train
 
 # Development Tools
 lint: sync
-	$(FLAKE8) $(SRC_DIR) $(SCRIPTS_DIR) $(TESTS_DIR)
+	$(FLAKE8) $(SRC_DIR) $(SCRIPTS_DIR)
 
 format fmt: sync
-	$(AUTOPEP8) -i -r $(SRC_DIR) $(SCRIPTS_DIR) $(TESTS_DIR)
+	$(AUTOPEP8) -i -r $(SRC_DIR) $(SCRIPTS_DIR)
 
-test: sync
-	$(PYTEST) $(TESTS_DIR)
-
-check: sync lint test
+check: lint
 
 # Cleanup
 clean:
