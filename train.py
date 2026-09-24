@@ -12,10 +12,19 @@ from src.data_loader import (
     load_dataset,
 )
 from src.metrics import plot_learning_curves
-from src.network import MLP
+from src.network import MLP, build_arch
 from src.preprocessing import Preprocessor
 
 DEFAULT_MODEL_PATH = Path(__file__).parent / "model.pkl"
+
+
+def _positive_int(value: str) -> int:
+    units = int(value)
+    if units < 1:
+        raise argparse.ArgumentTypeError(
+            f"hidden units must be >= 1, got {units}"
+        )
+    return units
 
 
 def parse_args() -> argparse.Namespace:
@@ -40,6 +49,18 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_MODEL_PATH,
         help="Where to save the trained model pickle (default: model.pkl)",
+    )
+    parser.add_argument(
+        "--layer",
+        type=_positive_int,
+        nargs="+",
+        default=[16, 16],
+        metavar="UNITS",
+        help=(
+            "Hidden-layer sizes. Example: --layer 24 24 24. "
+            "Each hidden layer uses ReLU. Output stays 2 units with softmax "
+            "(default: 16 16)"
+        ),
     )
     parser.add_argument("--lr", type=float, default=0.05)
     parser.add_argument(
@@ -95,13 +116,19 @@ def main() -> None:
     X_train, y_train = prep.fit_transform(train_df)
     X_val, y_val = prep.transform(val_df)
 
+    arch = build_arch(X_train.shape[1], args.layer)
+    hidden = " ".join(str(units) for units in args.layer)
+
     # ----------------------------------------------------------------- train
     print(
-        f"\nTraining MLP  lr={args.lr}  epochs={args.epochs}"
+        f"\nArchitecture: {X_train.shape[1]} -> [{hidden}] -> 2 softmax"
+    )
+    print(
+        f"Training MLP  lr={args.lr}  epochs={args.epochs}"
         f"  batch_size={args.batch_size}  weight_decay={args.weight_decay}"
         f"  seed={args.seed}"
     )
-    model = MLP(seed=args.seed)
+    model = MLP(seed=args.seed, arch=arch)
     history = model.fit(
         X_train,
         y_train,
@@ -112,7 +139,7 @@ def main() -> None:
         batch_size=args.batch_size,
         weight_decay=args.weight_decay,
         verbose=True,
-        log_every=10,
+        log_every=1,
         patience=args.patience,
     )
 
