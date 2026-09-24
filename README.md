@@ -63,7 +63,6 @@ make sweep-kfold
 ├── split.py                 # Create train / validation CSV splits
 ├── train.py                 # Train the MLP and save a checkpoint
 ├── predict.py               # Run inference with a saved model
-├── main.py                  # Placeholder entry point
 ├── src/
 │   ├── network.py           # MLP (forward, backward, fit)
 │   ├── layers.py            # Dense layer + He init
@@ -81,7 +80,6 @@ make sweep-kfold
 ├── data/
 │   └── data.csv             # Raw breast-cancer dataset
 ├── results/                 # Sweep CSV output (gitignored)
-├── tests/
 ├── Makefile
 └── README.md
 ```
@@ -91,8 +89,7 @@ make sweep-kfold
 ```bash
 make lint      # flake8
 make format    # autopep8
-make test      # pytest
-make check     # lint + test
+make check     # flake8
 make clean     # remove caches, model.pkl
 make fclean    # also remove .venv and local uv installs
 ```
