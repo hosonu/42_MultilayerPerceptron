@@ -1,11 +1,13 @@
 """Multi-layer perceptron for binary breast-cancer classification.
 
-Fixed architecture
-------------------
+Default architecture
+---------------------
   Input  : 30 features
   Hidden1: 16 units, ReLU, He init
   Hidden2: 16 units, ReLU, He init
   Output :  2 units, Softmax, He init
+
+Hidden-layer widths can be replaced via ``build_arch``.
 """
 
 from __future__ import annotations
@@ -17,12 +19,40 @@ from src.layers import DenseLayer
 from src.losses import cross_entropy, cross_entropy_gradient
 from src.metrics import accuracy
 
+_N_CLASSES = 2
+_DEFAULT_FEATURES = 30
+_DEFAULT_HIDDEN = (16, 16)
+
+
+def build_arch(
+    n_features: int,
+    hidden_units: list[int] | tuple[int, ...],
+) -> list[tuple[int, int, str]]:
+    """Build ``(n_inputs, n_units, activation)`` specs.
+
+    Each hidden layer uses ReLU. The output layer has 2 units and softmax.
+    """
+    if n_features < 1:
+        raise ValueError(f"n_features must be >= 1, got {n_features}")
+    if len(hidden_units) < 1:
+        raise ValueError("at least one hidden layer is required")
+
+    arch: list[tuple[int, int, str]] = []
+    n_in = n_features
+    for units in hidden_units:
+        if units < 1:
+            raise ValueError(f"hidden units must be >= 1, got {units}")
+        arch.append((n_in, units, "relu"))
+        n_in = units
+    arch.append((n_in, _N_CLASSES, "softmax"))
+    return arch
+
+
 # (n_inputs, n_units, activation)
-_DEFAULT_ARCH: list[tuple[int, int, str]] = [
-    (30, 16, "relu"),
-    (16, 16, "relu"),
-    (16, 2, "softmax"),
-]
+_DEFAULT_ARCH: list[tuple[int, int, str]] = build_arch(
+    _DEFAULT_FEATURES,
+    _DEFAULT_HIDDEN,
+)
 
 
 class MLP:
@@ -116,7 +146,7 @@ class MLP:
         weight_decay: float = 1e-3,
         seed: int | None = None,
         verbose: bool = True,
-        log_every: int = 10,
+        log_every: int = 1,
         patience: int = 20,
         min_delta: float = 1e-4,
     ) -> dict[str, list[float]]:
