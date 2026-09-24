@@ -56,7 +56,7 @@ help:
 	@echo "    make run            Alias for make train"
 	@echo ""
 	@echo "  Pass flags with ARGS, e.g.:"
-	@echo "    make train ARGS=\"--epochs 500 --no-plot\""
+	@echo "    make train ARGS=\"--layer 24 24 24 --epochs 500 --no-plot\""
 	@echo "    make sweep ARGS=\"--max-trials 4 --lrs 0.01 --batch-sizes 32 --units 16 24\""
 	@echo "    make sweep-seeds ARGS=\"--seeds 42 0 1 7 123\""
 	@echo ""
