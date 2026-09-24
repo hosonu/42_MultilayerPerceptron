@@ -12,6 +12,12 @@ The network is implemented with NumPy only — no ML frameworks for layers, loss
 | Hidden2 | 16    | ReLU       | He   |
 | Output  | 2     | Softmax    | He   |
 
+Hidden-layer sizes are the default. Override them with `--layer` (one integer per hidden layer, ReLU). The output layer stays 2 units with softmax.
+
+```bash
+python train.py --layer 24 24 24
+```
+
 - Loss: categorical cross-entropy
 - Optimizer: mini-batch SGD
 
@@ -43,12 +49,12 @@ Architecture sweep also writes per-epoch curves to `results/*_curves.csv`.
 
 `make train` loads `data/train.csv` and `data/validation.csv` from `make split`
 (no re-split). `--seed` only controls weight init and mini-batch shuffling.
-Defaults: `--epochs 500 --batch-size 16 --seed 16 --weight-decay 0.001`.
+Defaults: `--layer 16 16 --epochs 500 --batch-size 16 --seed 16 --weight-decay 0.001`.
 
 Pass extra CLI flags through `ARGS`:
 
 ```bash
-make train ARGS="--epochs 250 --lr 0.05 --batch-size 16 --patience 10 --no-plot"
+make train ARGS="--layer 24 24 24 --epochs 250 --lr 0.05 --batch-size 16 --patience 10 --no-plot"
 make predict ARGS="--model model.pkl --data data/validation.csv"
 make split ARGS="--validation-ratio 0.2 --seed 42"
 make sweep ARGS="--lrs 0.01 0.05 --epochs-list 200 --batch-sizes 16 32 --hidden-layers 1 2 --units 16 24"
