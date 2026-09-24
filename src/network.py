@@ -3,8 +3,8 @@
 Fixed architecture
 ------------------
   Input  : 30 features
-  Hidden1: 32 units, ReLU, He init
-  Hidden2: 32 units, ReLU, He init
+  Hidden1: 16 units, ReLU, He init
+  Hidden2: 16 units, ReLU, He init
   Output :  2 units, Softmax, He init
 """
 
@@ -137,14 +137,14 @@ class MLP:
         weight_decay:
             L2 regularisation coefficient λ.  Each update applies
             ``W -= lr * (dW + λ * W)`` so the weights are pulled towards
-            zero, limiting train-loss from collapsing to 0.  Set to 0.0
-            (default) to disable.  Typical range: 1e-4 - 1e-3.
+            zero, limiting train-loss from collapsing to 0.  The default is
+            0.001.  Set to 0.0 to disable.  Typical range: 1e-4 - 1e-3.
         seed:
             RNG seed for per-epoch shuffling.  Defaults to ``self.seed``.
         verbose:
             Print loss every ``log_every`` epochs when ``True``.
         log_every:
-            Print interval (default 100).
+            Print interval (default 10).
         patience:
             Early stopping: stop after this many epochs with no improvement
             in val_loss.  Ignored when no validation set is provided.
