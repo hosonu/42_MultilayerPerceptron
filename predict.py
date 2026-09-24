@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 
 from src.data_loader import DEFAULT_VALIDATION_PATH, load_dataset
+from src.losses import cross_entropy
 from src.metrics import accuracy
 from src.preprocessing import INT_TO_LABEL
 
@@ -54,7 +55,9 @@ def main() -> None:
     X, y_true = prep.transform(df)
 
     # --------------------------------------------------------------- predict
-    y_pred = model.predict(X)
+    probs = model.forward(X)
+    y_pred = probs.argmax(axis=1)
+    bce = cross_entropy(probs, y_true)
     acc = accuracy(y_true, y_pred)
 
     labels_pred = np.vectorize(INT_TO_LABEL.get)(y_pred)
@@ -65,9 +68,10 @@ def main() -> None:
     n_total = len(y_true)
 
     print(f"\nPredictions on {n_total} samples:")
-    print(f"  Correct   : {n_correct}")
-    print(f"  Incorrect : {n_total - n_correct}")
-    print(f"  Accuracy  : {acc:.4f} ({acc * 100:.2f} %)")
+    print(f"  Binary cross-entropy : {bce:.4f}")
+    print(f"  Correct              : {n_correct}")
+    print(f"  Incorrect            : {n_total - n_correct}")
+    print(f"  Accuracy             : {acc:.4f} ({acc * 100:.2f} %)")
 
     # Per-class breakdown
     for label_int, label_str in sorted(INT_TO_LABEL.items()):
